@@ -1,4 +1,7 @@
+"use client"
 import { Button } from "@/components/ui/button"
+import type React from "react"
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -6,8 +9,47 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Separator } from "@/components/ui/separator"
 import { Users, ArrowLeft, Eye } from "lucide-react"
 import Link from "next/link"
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export default function LoginPage() {
+  const router = useRouter()
+  const [showPassword, setShowPassword] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const formData = new FormData(e.currentTarget)
+      const email = String(formData.get("email") || "").trim()
+      const password = String(formData.get("password") || "")
+
+      if (!email || !password) {
+        setError("Please enter both email and password.")
+        return
+      }
+      if (password.length < 6) {
+        setError("Password must be at least 6 characters.")
+        return
+      }
+
+      // Demo auth — replace with real API later
+      const token = "demo-" + Math.random().toString(36).slice(2)
+      localStorage.setItem("auth-token", token)
+      localStorage.setItem("user", JSON.stringify({ email }))
+
+      router.push("/dashboard")
+    } catch {
+      setError("Something went wrong. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -36,21 +78,35 @@ export default function LoginPage() {
             <CardDescription>Enter your email and password to access your account</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <form className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" type="email" placeholder="your.email@university.edu" required />
+                <Input id="email" name="email" type="email" placeholder="your.email@university.edu" required />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
-                  <Input id="password" type="password" placeholder="Enter your password" required />
+                  <Input
+                    id="password"
+                    name="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                    required
+                  />
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
+                    onClick={() => setShowPassword((v) => !v)}
                     className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
                   >
                     <Eye className="h-4 w-4 text-muted-foreground" />
                   </Button>
@@ -59,7 +115,7 @@ export default function LoginPage() {
 
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
-                  <Checkbox id="remember" />
+                  <Checkbox id="remember" name="remember" />
                   <Label htmlFor="remember" className="text-sm font-normal">
                     Remember me
                   </Label>
@@ -69,8 +125,8 @@ export default function LoginPage() {
                 </Link>
               </div>
 
-              <Button type="submit" className="w-full">
-                Sign in
+              <Button type="submit" className="w-full" disabled={loading}>
+                {loading ? "Signing in..." : "Sign in"}
               </Button>
             </form>
 
